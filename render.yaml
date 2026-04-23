@@ -1,0 +1,63 @@
+# Render Blueprint for the Matloob EA client portal.
+# Hostname: portal.matloobtaxandconsulting.com
+# Deploy:   New → Blueprint in Render dashboard, connect GitHub repo.
+
+services:
+  - type: web
+    name: matloob-portal
+    runtime: node
+    plan: starter                         # $7/mo — required for persistent disk.
+    region: oregon                        # Switch to 'virginia' if you prefer East Coast.
+    branch: main
+    buildCommand: npm ci && npm run build
+    startCommand: node dist/index.cjs
+    healthCheckPath: /api/health
+    autoDeploy: true
+
+    # Persistent disk — holds SQLite DB + encrypted client file blobs across deploys.
+    disk:
+      name: portal-data
+      mountPath: /var/data
+      sizeGB: 1
+
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: DATA_DIR
+        value: /var/data
+
+      # Admin seed account (change the password after first login).
+      - key: INITIAL_ADMIN_EMAIL
+        value: abdul@matloob-ea.com
+      - key: INITIAL_ADMIN_PASSWORD
+        sync: false                       # Set in Render dashboard.
+
+      # File encryption key — 64-char hex, generated via `openssl rand -hex 32`.
+      - key: FILE_ENCRYPTION_KEY
+        sync: false
+
+      # Session secret — 64-char hex, generated via `openssl rand -hex 32`.
+      - key: SESSION_SECRET
+        sync: false
+
+      # Public URL used in outgoing email links.
+      - key: PORTAL_BASE_URL
+        value: https://portal.matloobtaxandconsulting.com
+
+      # ----- Gmail SMTP (Google Workspace or consumer Gmail with App Password) -----
+      - key: SMTP_HOST
+        value: smtp.gmail.com
+      - key: SMTP_PORT
+        value: "465"
+      - key: SMTP_SECURE
+        value: "true"
+      - key: SMTP_USER
+        value: contact@matloob-ea.com
+      - key: SMTP_PASSWORD
+        sync: false                       # 16-char Gmail App Password.
+      - key: MAIL_FROM_NAME
+        value: Matloob Tax & Consulting
+      - key: MAIL_FROM_EMAIL
+        value: contact@matloob-ea.com
+      - key: ADMIN_NOTIFY_EMAIL
+        value: contact@matloob-ea.com
